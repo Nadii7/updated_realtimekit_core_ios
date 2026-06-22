@@ -494,22 +494,22 @@ public class SwiftFlutterCoreIosPlugin: NSObject, FlutterPlugin {
 
         case "enableVideo":
             rtkClientIOS.enableVideo(onResult: { (error: (any CoreRtkError)?) in
-                result(error?.code)
+                result(error?.code.rawValue)
             })
 
         case "disableVideo":
             rtkClientIOS.disableVideo(onResult: { (error: (any CoreRtkError)?) in
-                result(error?.code)
+                result(error?.code.rawValue)
             })
 
         case "enableAudio":
             return rtkClientIOS.enableAudio(onResult: { (error: (any CoreRtkError)?) in
-                result(error?.code)
+                result(error?.code.rawValue)
             })
 
         case "disableAudio":
             return rtkClientIOS.disableAudio(onResult: { (error: (any CoreRtkError)?) in
-                result(error?.code)
+                result(error?.code.rawValue)
             })
 
         case "meta":
@@ -605,12 +605,12 @@ public class SwiftFlutterCoreIosPlugin: NSObject, FlutterPlugin {
 
         case "startRecording":
             return rtkClientIOS.startRecording(onResult: { (error: (any CoreRtkError)?) in
-                result(error?.code)
+                result(error?.code.rawValue)
             })
 
         case "stopRecording":
             return rtkClientIOS.stopRecording(onResult: { (error: (any CoreRtkError)?) in
-                result(error?.code)
+                result(error?.code.rawValue)
             })
 
         case "getRecordingState":

@@ -1,10 +1,11 @@
 name: realtimekit_core_ios
 description: iOS implementation of the realtimekit_core plugin
-version: 0.1.4
+version: 0.1.6
 homepage: https://docs.realtime.cloudflare.com/flutter-core
+resolution: workspace
 
 environment:
-  sdk: ">=2.19.0 <4.0.0"
+  sdk: ^3.6.0
   flutter: ">=3.0.0"
 
 flutter:
@@ -18,7 +19,7 @@ flutter:
 dependencies:
   flutter:
     sdk: flutter
-  realtimekit_core_platform_interface: ^0.1.4
+  realtimekit_core_platform_interface: ^0.1.6
 
 dev_dependencies:
   flutter_lints: ^4.0.0
