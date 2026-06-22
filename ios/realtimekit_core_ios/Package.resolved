@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "mobile-core-bridge-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/dyte-in/mobile-core-bridge-spm.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "522da8ab2a7139d4d61f1d11dd1f0ffc205230c9"
+      }
+    }
+  ],
+  "version" : 2
+}
