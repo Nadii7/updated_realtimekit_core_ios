@@ -250,9 +250,22 @@ class FlutterCoreIOS extends RtkClientPlatform {
     cachedListeners.clear();
   }
 
+  Future<void>? _pendingNativeListenerCleanup;
+
   @override
   Future<void> init(RtkMeetingInfo rtkMeetingInfo,
       {Function(RtkError?)? onError, void Function()? onSuccess}) async {
+    final pendingCleanup = _pendingNativeListenerCleanup;
+    if (pendingCleanup != null) {
+      try {
+        await pendingCleanup;
+      } finally {
+        if (identical(_pendingNativeListenerCleanup, pendingCleanup)) {
+          _pendingNativeListenerCleanup = null;
+        }
+      }
+    }
+
     _isChatNativeListenerAttached =
         await initializeXListener<RtkChatEventListener>(
       _isChatNativeListenerAttached,
@@ -705,7 +718,7 @@ class FlutterCoreIOS extends RtkClientPlatform {
 
   @override
   Future<void> cleanNativeMeetingRoomEventListener() async {
-    _roomEventListener.dispose();
+    await _roomEventListener.dispose();
     _isRoomNativeListenerAttached = false;
     return;
   }
@@ -760,7 +773,30 @@ class FlutterCoreIOS extends RtkClientPlatform {
   }
 
   @override
-  Future<void> cleanAllNativeListeners() async {
+  Future<void> cleanAllNativeListeners() {
+    final pendingCleanup = _pendingNativeListenerCleanup;
+    if (pendingCleanup != null) {
+      return pendingCleanup;
+    }
+
+    final cleanup = _cleanAllNativeListeners();
+    _pendingNativeListenerCleanup = cleanup;
+    cleanup.then<void>(
+      (_) {
+        if (identical(_pendingNativeListenerCleanup, cleanup)) {
+          _pendingNativeListenerCleanup = null;
+        }
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (identical(_pendingNativeListenerCleanup, cleanup)) {
+          _pendingNativeListenerCleanup = null;
+        }
+      },
+    );
+    return cleanup;
+  }
+
+  Future<void> _cleanAllNativeListeners() async {
     await cleanNativeMeetingRoomEventListener();
     await cleanNativeParticipantsEventListener();
     await cleanNativePollListener();
