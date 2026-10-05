@@ -5,7 +5,9 @@ import UIKit
 import RealtimeKitFlutterCoreKMM
 
 public class SwiftFlutterCoreIosPlugin: NSObject, FlutterPlugin {
-    let rtkClientIOS: RtkClient
+    var rtkClientIOS: RtkClient
+    private var requiresFreshClientRebuild = false
+    private var previousClientWasReleased = false
 
     var methodChannel: FlutterMethodChannel?
     let participantsEventChannel: FlutterEventChannel
@@ -45,6 +47,9 @@ public class SwiftFlutterCoreIosPlugin: NSObject, FlutterPlugin {
 //    var livestreamEventsHandler: Li?
     var dataUpdateEventsHandler: DataUpdateEventsHandler?
     var stageEventsHandler: StageEventsHandler?
+    var videoViewFactory: RtkVideoViewFactory?
+    var pluginViewFactory: RtkPluginViewFactory?
+    var screenshareViewFactory: RtkScreenshareViewFactory?
 
     init(participantsEventChannel: FlutterEventChannel, roomEventsChannel: FlutterEventChannel, selfParticipantChannel: FlutterEventChannel, pluginEventsChannel: FlutterEventChannel, chatEventsChannel: FlutterEventChannel, pollEventsChannel: FlutterEventChannel, recordingEventsChannel: FlutterEventChannel, waitlistEventsChannel: FlutterEventChannel, livestreamEventsChannel: FlutterEventChannel, stageEventsChannel: FlutterEventChannel, dataEventsChannel: FlutterEventChannel, participantUpdateEventsChannel _: FlutterEventChannel) {
         rtkClientIOS = RtkClientBuilder().build()
@@ -112,6 +117,7 @@ public class SwiftFlutterCoreIosPlugin: NSObject, FlutterPlugin {
     }
 
     func disposeListeners() {
+        requiresFreshClientRebuild = true
         chatEventsHandler?.disposeHandler()
         dataUpdateEventsHandler?.disposeHandler()
 //        livestreamEventsHandler?.disposeHandler()
@@ -205,17 +211,34 @@ public class SwiftFlutterCoreIosPlugin: NSObject, FlutterPlugin {
 
         let mobileClient = instance.rtkClientIOS.core
 
-        let videoViewFactory = RtkVideoViewFactory(messenger: registrar.messenger(), client: mobileClient)
-        let pluginViewFactory = RtkPluginViewFactory(client: mobileClient)
-        let screenshareViewFactory = RtkScreenshareViewFactory(client: mobileClient)
+        instance.videoViewFactory = RtkVideoViewFactory(messenger: registrar.messenger(), client: mobileClient)
+        instance.pluginViewFactory = RtkPluginViewFactory(client: mobileClient)
+        instance.screenshareViewFactory = RtkScreenshareViewFactory(client: mobileClient)
 //        let lvsViewFactory = DyteLivestreamViewFactory()
 
         registrar.addMethodCallDelegate(instance, channel: channel)
-        registrar.register(videoViewFactory, withId: "DytePlatformVideoView")
-        registrar.register(pluginViewFactory, withId: "DytePlatformPluginView")
-        registrar.register(screenshareViewFactory, withId: "DytePlatformScreenshareView")
+        registrar.register(instance.videoViewFactory!, withId: "DytePlatformVideoView")
+        registrar.register(instance.pluginViewFactory!, withId: "DytePlatformPluginView")
+        registrar.register(instance.screenshareViewFactory!, withId: "DytePlatformScreenshareView")
 //        registrar.register(lvsViewFactory, withId: "DytePlatformLivestreamView")
         registrar.addApplicationDelegate(instance)
+    }
+
+    private func replaceClient(with client: RtkClient) {
+        rtkClientIOS = client
+        roomEventsHandler?.rtkClient = client
+        chatEventsHandler?.rtkClient = client
+        participantEventsHandler?.rtkClient = client
+        selfParticipantEventsHandler?.rtkClient = client
+        pluginEventsHandler?.rtkClient = client
+        pollsEventsHandler?.rtkClient = client
+        recordingEventsHandler?.rtkClient = client
+        waitlistEventsHandler?.rtkClient = client
+        dataUpdateEventsHandler?.rtkClient = client
+        stageEventsHandler?.rtkClient = client
+        videoViewFactory?.mobileClient = client.core
+        pluginViewFactory?.mobileClient = client.core
+        screenshareViewFactory?.mobileClient = client.core
     }
 
     private func fileURL(from path: String) -> URL {
@@ -226,6 +249,32 @@ public class SwiftFlutterCoreIosPlugin: NSObject, FlutterPlugin {
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
+        case "prepareForInit":
+            guard requiresFreshClientRebuild else {
+                return result(nil)
+            }
+
+            let previousClient = rtkClientIOS
+            let rebuildClient: () -> Void = {
+                self.disposeListeners()
+                self.replaceClient(with: RtkClientBuilder().build())
+                self.requiresFreshClientRebuild = false
+                self.previousClientWasReleased = false
+                result(nil)
+            }
+
+            if previousClientWasReleased {
+                rebuildClient()
+            } else {
+                previousClient.releaseMeeting(onReleaseSuccess: {
+                    self.previousClientWasReleased = true
+                    rebuildClient()
+                }, onReleaseFailed: { error in
+                    NSLog("RealtimeKit: release of previous iOS client failed before reinit: %@", String(describing: error))
+                    rebuildClient()
+                })
+            }
+
         case "init":
             let meetingInfo = CoreRtkMeetingInfo.companion.fromMap(map: call.arguments as! [String: Any])
             rtkClientIOS.doInit(meetingInfo: meetingInfo) {
@@ -251,6 +300,8 @@ public class SwiftFlutterCoreIosPlugin: NSObject, FlutterPlugin {
 
         case "leaveRoom":
             rtkClientIOS.leaveRoom {
+                self.requiresFreshClientRebuild = true
+                self.previousClientWasReleased = false
                 result(nil)
             } onError: { error in
                 result(error?.code.rawValue)
@@ -852,6 +903,7 @@ public class SwiftFlutterCoreIosPlugin: NSObject, FlutterPlugin {
 
         case "release":
             rtkClientIOS.releaseMeeting(onReleaseSuccess: {
+                self.previousClientWasReleased = true
                 self.disposeListeners(); result(true)
             }, onReleaseFailed: { _ in
                 result(false)

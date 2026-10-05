@@ -2,7 +2,7 @@ import Flutter
 import RealtimeKitFlutterCoreKMM
 
 class RtkPluginViewFactory: NSObject, FlutterPlatformViewFactory {
-    let mobileClient: CoreRealtimeKitClient
+    var mobileClient: CoreRealtimeKitClient
 
     init(client: CoreRealtimeKitClient) {
         mobileClient = client

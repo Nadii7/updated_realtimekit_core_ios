@@ -266,6 +266,8 @@ class FlutterCoreIOS extends RtkClientPlatform {
       }
     }
 
+    await _coreMethodChannel.invokeMethod<void>("prepareForInit");
+
     _isChatNativeListenerAttached =
         await initializeXListener<RtkChatEventListener>(
       _isChatNativeListenerAttached,

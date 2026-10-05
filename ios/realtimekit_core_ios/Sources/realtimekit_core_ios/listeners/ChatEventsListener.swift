@@ -4,7 +4,7 @@ import RealtimeKitFlutterCoreKMM
 class ChatEventsHandler: NSObject, FlutterStreamHandler, RtkEventsHandler {
     var listener: ChatEventListener?
     var eventSinkWrapper: EventSinkWrapper?
-    let rtkClient: RtkClient
+    var rtkClient: RtkClient
     let plugin: SwiftFlutterCoreIosPlugin
 
     var defaultSink: FlutterEventSink?

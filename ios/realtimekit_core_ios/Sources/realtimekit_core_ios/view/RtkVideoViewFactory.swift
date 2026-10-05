@@ -3,7 +3,7 @@ import RealtimeKitFlutterCoreKMM
 
 class RtkVideoViewFactory: NSObject, FlutterPlatformViewFactory {
     private var messenger: FlutterBinaryMessenger
-    let mobileClient: CoreRealtimeKitClient
+    var mobileClient: CoreRealtimeKitClient
 
     init(messenger: FlutterBinaryMessenger, client: CoreRealtimeKitClient) {
         self.messenger = messenger

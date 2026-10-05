@@ -2,7 +2,7 @@ import Flutter
 import RealtimeKitFlutterCoreKMM
 
 class RtkScreenshareViewFactory: NSObject, FlutterPlatformViewFactory {
-    let mobileClient: CoreRealtimeKitClient
+    var mobileClient: CoreRealtimeKitClient
 
     init(client: CoreRealtimeKitClient) {
         mobileClient = client
